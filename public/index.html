@@ -15,18 +15,10 @@
             align-items: center;
             justify-content: center;
             min-height: 100vh;
-            position: relative;
         }
         h1 {
             color: #333;
             margin-top: 20px;
-        }
-        #username {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            font-size: 1.2em;
-            color: #007BFF;
         }
         #prompt {
             font-size: 1.2em;
@@ -38,7 +30,6 @@
             background-color: #fff;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
             cursor: crosshair;
-            margin-bottom: 20px;
         }
         button {
             background-color: #007BFF;
@@ -70,6 +61,8 @@
         }
         .auth-form {
             display: none;
+            margin-bottom: 20px;
+            display: flex;
             flex-direction: column;
             align-items: center;
         }
@@ -78,12 +71,26 @@
             padding: 10px;
             font-size: 1em;
         }
+        #auth-buttons {
+            display: flex;
+            flex-direction: row;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        #username-display {
+            margin-top: 20px;
+            font-size: 1.2em;
+            color: #333;
+        }
     </style>
 </head>
 <body>
     <h1>Doodle App</h1>
-    <div id="username"></div>
-    <button id="toggle-auth">User Options</button>
+    <div id="username-display"></div>
+    <div id="auth-buttons">
+        <button id="show-register">Sign Up</button>
+        <button id="show-login">Login</button>
+    </div>
     <form id="register-form" class="auth-form">
         <h2>Register</h2>
         <input type="text" id="register-username" placeholder="Username">
@@ -107,33 +114,59 @@
         const context = canvas.getContext('2d');
         let drawing = false;
 
-        // Canvas drawing
-        canvas.addEventListener('mousedown', () => {
+        let token = localStorage.getItem('token');
+        let username = localStorage.getItem('username');
+
+        function updateCoordinates(event) {
+            const rect = canvas.getBoundingClientRect();
+            return {
+                x: event.clientX - rect.left,
+                y: event.clientY - rect.top
+            };
+        }
+
+        canvas.addEventListener('mousedown', (event) => {
             drawing = true;
             context.beginPath();
+            const { x, y } = updateCoordinates(event);
+            context.moveTo(x, y);
         });
 
         canvas.addEventListener('mouseup', () => {
             drawing = false;
-            context.closePath();
         });
 
         canvas.addEventListener('mousemove', (event) => {
             if (drawing) {
-                const rect = canvas.getBoundingClientRect();
-                const x = event.clientX - rect.left;
-                const y = event.clientY - rect.top;
+                const { x, y } = updateCoordinates(event);
                 context.lineTo(x, y);
                 context.stroke();
             }
         });
 
-        // Authentication handling
-        document.getElementById('toggle-auth').addEventListener('click', () => {
-            const forms = document.querySelectorAll('.auth-form');
-            forms.forEach(form => {
-                form.style.display = form.style.display === 'flex' ? 'none' : 'flex';
+        document.getElementById('save').addEventListener('click', () => {
+            const doodleUrl = canvas.toDataURL('image/png');
+            fetch('/doodle', {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ doodleUrl })
+            }).then(response => response.json()).then(data => {
+                console.log('Doodle saved:', data);
+                loadDoodles();
             });
+        });
+
+        document.getElementById('show-register').addEventListener('click', () => {
+            document.getElementById('register-form').style.display = 'block';
+            document.getElementById('login-form').style.display = 'none';
+        });
+
+        document.getElementById('show-login').addEventListener('click', () => {
+            document.getElementById('register-form').style.display = 'none';
+            document.getElementById('login-form').style.display = 'block';
         });
 
         document.getElementById('register').addEventListener('click', () => {
@@ -146,6 +179,7 @@
             }).then(response => response.text()).then(data => {
                 console.log(data);
                 alert('Registration successful, please login');
+                document.getElementById('register-form').style.display = 'none';
             });
         });
 
@@ -156,39 +190,27 @@
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ username, password })
-            }).then(response => response.json()).then(data => {
+            }).then(response => response.text()).then(data => {
                 console.log(data);
-                if (data.token) {
+                if (data === 'Login successful') {
+                    alert('Login successful');
                     localStorage.setItem('token', data.token);
                     localStorage.setItem('username', username);
-                    document.getElementById('username').innerText = `Logged in as: ${username}`;
+                    token = data.token;
+                    document.getElementById('login-form').style.display = 'none';
+                    document.getElementById('auth-buttons').style.display = 'none';
+                    document.getElementById('username-display').innerText = `Logged in as: ${username}`;
                     loadPrompt();
                     loadDoodles();
-                    document.querySelectorAll('.auth-form').forEach(form => form.style.display = 'none');
                 } else {
                     alert('Login failed');
                 }
             });
         });
 
-        document.getElementById('save').addEventListener('click', () => {
-            const doodleUrl = canvas.toDataURL('image/png');
-            fetch('/doodle', {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
-                },
-                body: JSON.stringify({ doodleUrl })
-            }).then(response => response.json()).then(data => {
-                console.log('Doodle saved:', data);
-                loadDoodles();
-            });
-        });
-
         function loadDoodles() {
             fetch('/doodles', {
-                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+                headers: { 'Authorization': `Bearer ${token}` }
             }).then(response => response.json()).then(doodles => {
                 const doodlesDiv = document.getElementById('doodles');
                 doodlesDiv.innerHTML = '';
@@ -202,16 +224,15 @@
 
         function loadPrompt() {
             fetch('/prompt', {
-                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+                headers: { 'Authorization': `Bearer ${token}` }
             }).then(response => response.json()).then(data => {
                 document.getElementById('prompt').innerText = data.prompt;
             });
         }
 
-        // Display logged-in user's name if available
-        const username = localStorage.getItem('username');
-        if (username) {
-            document.getElementById('username').innerText = `Logged in as: ${username}`;
+        if (token && username) {
+            document.getElementById('auth-buttons').style.display = 'none';
+            document.getElementById('username-display').innerText = `Logged in as: ${username}`;
             loadPrompt();
             loadDoodles();
         }
