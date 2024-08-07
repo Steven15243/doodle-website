@@ -22,8 +22,15 @@
         const context = canvas.getContext('2d');
         let drawing = false;
 
-        canvas.addEventListener('mousedown', () => { drawing = true; });
-        canvas.addEventListener('mouseup', () => { drawing = false; });
+        canvas.addEventListener('mousedown', () => {
+            drawing = true;
+            context.beginPath();  // Start a new path to prevent connecting lines
+        });
+
+        canvas.addEventListener('mouseup', () => {
+            drawing = false;
+        });
+
         canvas.addEventListener('mousemove', (event) => {
             if (drawing) {
                 context.lineTo(event.clientX - canvas.offsetLeft, event.clientY - canvas.offsetTop);
