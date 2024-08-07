@@ -25,7 +25,7 @@ app.use(session({
 app.use(express.static(path.join(__dirname, 'public')));
 
 // MongoDB connection
-mongoose.connect(process.env.MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true })
+mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/doodleApp', { useNewUrlParser: true, useUnifiedTopology: true })
     .then(() => console.log('Connected to MongoDB'))
     .catch(err => console.error('Could not connect to MongoDB:', err));
 
@@ -72,7 +72,7 @@ app.post('/login', async (req, res) => {
     }
     const token = jwt.sign({ userId: user._id }, secretKey, { expiresIn: '1h' });
     req.session.token = token;
-    res.send('Login successful');
+    res.json({ message: 'Login successful', token });
 });
 
 // Middleware to check authentication
