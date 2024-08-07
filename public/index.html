@@ -3,20 +3,66 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Doodle Website</title>
-    <link rel="stylesheet" href="styles.css">
+    <title>Doodle App</title>
+    <style>
+        canvas { border: 1px solid black; }
+        img { max-width: 100%; height: auto; }
+    </style>
 </head>
 <body>
-    <div id="app">
-        <h1>Daily Doodle</h1>
-        <p id="prompt"></p>
-        <canvas id="doodleCanvas" width="500" height="500"></canvas>
-        <br>
-        <button onclick="clearCanvas()">Clear</button>
-        <button onclick="submitDoodle()">Submit Doodle</button>
-        <h2>Gallery</h2>
-        <div id="gallery"></div>
-    </div>
-    <script src="app.js"></script>
+    <h1>Doodle App</h1>
+    <p id="prompt"></p>
+    <canvas id="canvas" width="500" height="500"></canvas>
+    <br>
+    <button id="save">Save Doodle</button>
+    <h2>Previous Doodles</h2>
+    <div id="doodles"></div>
+    <script>
+        const canvas = document.getElementById('canvas');
+        const context = canvas.getContext('2d');
+        let drawing = false;
+
+        canvas.addEventListener('mousedown', () => { drawing = true; });
+        canvas.addEventListener('mouseup', () => { drawing = false; });
+        canvas.addEventListener('mousemove', (event) => {
+            if (drawing) {
+                context.lineTo(event.clientX - canvas.offsetLeft, event.clientY - canvas.offsetTop);
+                context.stroke();
+            }
+        });
+
+        document.getElementById('save').addEventListener('click', () => {
+            const doodleUrl = canvas.toDataURL('image/png');
+            fetch('/doodle', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ doodleUrl })
+            }).then(response => response.json()).then(data => {
+                console.log('Doodle saved:', data);
+                loadDoodles();
+            });
+        });
+
+        function loadDoodles() {
+            fetch('/doodles').then(response => response.json()).then(doodles => {
+                const doodlesDiv = document.getElementById('doodles');
+                doodlesDiv.innerHTML = '';
+                doodles.forEach(doodle => {
+                    const img = document.createElement('img');
+                    img.src = doodle.doodleUrl;
+                    doodlesDiv.appendChild(img);
+                });
+            });
+        }
+
+        function loadPrompt() {
+            fetch('/prompt').then(response => response.json()).then(data => {
+                document.getElementById('prompt').innerText = data.prompt;
+            });
+        }
+
+        loadPrompt();
+        loadDoodles();
+    </script>
 </body>
 </html>
