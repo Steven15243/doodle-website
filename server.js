@@ -42,7 +42,7 @@ app.post('/doodle', async (req, res) => {
         if (err) {
             res.status(500).send(err);
         } else {
-            const doodle = new Doodle({ doodleUrl: fileName });
+            const doodle = new Doodle({ doodleUrl: `/${fileName}` });
             await doodle.save();
             res.status(201).send(doodle);
         }
