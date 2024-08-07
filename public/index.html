@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Doodle Website</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="app">
+        <h1>Daily Doodle</h1>
+        <p id="prompt"></p>
+        <canvas id="doodleCanvas" width="500" height="500"></canvas>
+        <br>
+        <button onclick="clearCanvas()">Clear</button>
+        <button onclick="submitDoodle()">Submit Doodle</button>
+        <h2>Gallery</h2>
+        <div id="gallery"></div>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>
