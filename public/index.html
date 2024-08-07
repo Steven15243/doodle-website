@@ -134,6 +134,7 @@
 
         canvas.addEventListener('mouseup', () => {
             drawing = false;
+            context.beginPath(); // Begin a new path to avoid lines connecting between mouse events
         });
 
         canvas.addEventListener('mousemove', (event) => {
