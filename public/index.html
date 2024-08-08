@@ -119,31 +119,49 @@
 
         function updateCoordinates(event) {
             const rect = canvas.getBoundingClientRect();
-            return {
-                x: event.clientX - rect.left,
-                y: event.clientY - rect.top
-            };
+            let x, y;
+
+            if (event.touches) {  // For touch events
+                x = event.touches[0].clientX - rect.left;
+                y = event.touches[0].clientY - rect.top;
+            } else {  // For mouse events
+                x = event.clientX - rect.left;
+                y = event.clientY - rect.top;
+            }
+
+            return { x, y };
         }
 
-        canvas.addEventListener('mousedown', (event) => {
+        function startDrawing(event) {
             drawing = true;
             context.beginPath();
             const { x, y } = updateCoordinates(event);
             context.moveTo(x, y);
-        });
+            event.preventDefault();  // Prevent scrolling or other default actions
+        }
 
-        canvas.addEventListener('mouseup', () => {
+        function stopDrawing() {
             drawing = false;
-            context.beginPath(); // Begin a new path to avoid lines connecting between mouse events
-        });
+            context.beginPath(); // Begin a new path to avoid lines connecting between touch/mouse events
+        }
 
-        canvas.addEventListener('mousemove', (event) => {
-            if (drawing) {
-                const { x, y } = updateCoordinates(event);
-                context.lineTo(x, y);
-                context.stroke();
-            }
-        });
+        function draw(event) {
+            if (!drawing) return;
+            const { x, y } = updateCoordinates(event);
+            context.lineTo(x, y);
+            context.stroke();
+            event.preventDefault();  // Prevent scrolling or other default actions
+        }
+
+        canvas.addEventListener('mousedown', startDrawing);
+        canvas.addEventListener('mousemove', draw);
+        canvas.addEventListener('mouseup', stopDrawing);
+        canvas.addEventListener('mouseout', stopDrawing);
+
+        // Adding touch events
+        canvas.addEventListener('touchstart', startDrawing);
+        canvas.addEventListener('touchmove', draw);
+        canvas.addEventListener('touchend', stopDrawing);
 
         document.getElementById('save').addEventListener('click', () => {
             const doodleUrl = canvas.toDataURL('image/png');
