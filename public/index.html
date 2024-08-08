@@ -113,14 +113,14 @@
         const canvas = document.getElementById('canvas');
         const context = canvas.getContext('2d');
         let drawing = false;
-
+    
         let token = localStorage.getItem('token');
         let username = localStorage.getItem('username');
-
+    
         function updateCoordinates(event) {
             const rect = canvas.getBoundingClientRect();
             let x, y;
-
+    
             if (event.touches) {  // For touch events
                 x = event.touches[0].clientX - rect.left;
                 y = event.touches[0].clientY - rect.top;
@@ -128,10 +128,10 @@
                 x = event.clientX - rect.left;
                 y = event.clientY - rect.top;
             }
-
+    
             return { x, y };
         }
-
+    
         function startDrawing(event) {
             drawing = true;
             context.beginPath();
@@ -139,12 +139,12 @@
             context.moveTo(x, y);
             event.preventDefault();  // Prevent scrolling or other default actions
         }
-
+    
         function stopDrawing() {
             drawing = false;
             context.beginPath(); // Begin a new path to avoid lines connecting between touch/mouse events
         }
-
+    
         function draw(event) {
             if (!drawing) return;
             const { x, y } = updateCoordinates(event);
@@ -152,17 +152,17 @@
             context.stroke();
             event.preventDefault();  // Prevent scrolling or other default actions
         }
-
+    
         canvas.addEventListener('mousedown', startDrawing);
         canvas.addEventListener('mousemove', draw);
         canvas.addEventListener('mouseup', stopDrawing);
         canvas.addEventListener('mouseout', stopDrawing);
-
+    
         // Adding touch events
         canvas.addEventListener('touchstart', startDrawing);
         canvas.addEventListener('touchmove', draw);
         canvas.addEventListener('touchend', stopDrawing);
-
+    
         document.getElementById('save').addEventListener('click', () => {
             const doodleUrl = canvas.toDataURL('image/png');
             fetch('/doodle', {
@@ -177,17 +177,17 @@
                 loadDoodles();
             });
         });
-
+    
         document.getElementById('show-register').addEventListener('click', () => {
             document.getElementById('register-form').style.display = 'block';
             document.getElementById('login-form').style.display = 'none';
         });
-
+    
         document.getElementById('show-login').addEventListener('click', () => {
             document.getElementById('register-form').style.display = 'none';
             document.getElementById('login-form').style.display = 'block';
         });
-
+    
         document.getElementById('register').addEventListener('click', () => {
             const username = document.getElementById('register-username').value;
             const password = document.getElementById('register-password').value;
@@ -201,7 +201,7 @@
                 document.getElementById('register-form').style.display = 'none';
             });
         });
-
+    
         document.getElementById('login').addEventListener('click', () => {
             const username = document.getElementById('login-username').value;
             const password = document.getElementById('login-password').value;
@@ -226,7 +226,7 @@
                 }
             });
         });
-
+    
         function loadDoodles() {
             fetch('/doodles', {
                 headers: { 'Authorization': `Bearer ${token}` }
@@ -240,7 +240,7 @@
                 });
             });
         }
-
+    
         function loadPrompt() {
             fetch('/prompt', {
                 headers: { 'Authorization': `Bearer ${token}` }
@@ -248,13 +248,18 @@
                 document.getElementById('prompt').innerText = data.prompt;
             });
         }
-
+    
+        // Check if the user is logged in on page load
         if (token && username) {
             document.getElementById('auth-buttons').style.display = 'none';
             document.getElementById('username-display').innerText = `Logged in as: ${username}`;
             loadPrompt();
             loadDoodles();
+        } else {
+            document.getElementById('auth-buttons').style.display = 'flex';
+            document.getElementById('username-display').innerText = '';
         }
     </script>
+    
 </body>
 </html>
