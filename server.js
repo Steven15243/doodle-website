@@ -40,11 +40,14 @@ const User = mongoose.model('User', userSchema);
 // Doodle schema and model
 const doodleSchema = new mongoose.Schema({
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    username: { type: String, required: true },  // Add this line
+    username: { type: String, required: true },
     prompt: String,
     doodleUrl: String,
-    date: { type: Date, default: Date.now }
+    date: { type: Date, default: Date.now },
+    likes: { type: Number, default: 0 },
+    likedBy: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }]
 });
+
 
 
 const Doodle = mongoose.model('Doodle', doodleSchema);
@@ -102,7 +105,7 @@ app.post('/doodle', authenticate, async (req, res) => {
     const imgData = req.body.doodleUrl;
     const base64Data = imgData.replace(/^data:image\/png;base64,/, "");
     const fileName = `uploads/doodle-${Date.now()}.png`;
-    const user = await User.findById(req.userId);  // Fetch the user information
+    const user = await User.findById(req.userId);
 
     fs.writeFile(path.join(__dirname, 'public', fileName), base64Data, 'base64', async (err) => {
         if (err) {
@@ -110,7 +113,7 @@ app.post('/doodle', authenticate, async (req, res) => {
         } else {
             const doodle = new Doodle({
                 userId: req.userId,
-                username: user.username,  // Save the username with the doodle
+                username: user.username,
                 doodleUrl: fileName
             });
             await doodle.save();
@@ -118,6 +121,28 @@ app.post('/doodle', authenticate, async (req, res) => {
         }
     });
 });
+
+app.post('/doodle/:id/like', authenticate, async (req, res) => {
+    const doodleId = req.params.id;
+    const userId = req.userId;
+
+    const doodle = await Doodle.findById(doodleId);
+    if (!doodle) {
+        return res.status(404).send('Doodle not found');
+    }
+
+    if (doodle.likedBy.includes(userId)) {
+        return res.status(400).send('Already liked');
+    }
+
+    doodle.likes += 1;
+    doodle.likedBy.push(userId);
+    await doodle.save();
+
+    res.json({ likes: doodle.likes });
+});
+
+
 
 
 app.get('/doodles', authenticate, async (req, res) => {

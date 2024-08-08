@@ -104,6 +104,14 @@
         }
     </style>
 </head>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Doodle App</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
 <body>
     <h1>Doodle App</h1>
     <div id="username-display"></div>
@@ -271,8 +279,31 @@
                         usernameLabel.classList.add('username');
                         usernameLabel.innerText = `Created by: ${doodle.username}`;
 
+                        const likeButton = document.createElement('button');
+                        likeButton.innerText = `Like (${doodle.likes || 0})`;
+                        likeButton.addEventListener('click', async () => {
+                            try {
+                                const response = await fetch(`/doodle/${doodle._id}/like`, {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'Authorization': `Bearer ${token}`
+                                    }
+                                });
+                                if (response.ok) {
+                                    const data = await response.json();
+                                    likeButton.innerText = `Like (${data.likes})`;
+                                } else {
+                                    alert('Error liking doodle');
+                                }
+                            } catch (error) {
+                                alert('Error liking doodle');
+                            }
+                        });
+
                         doodleItem.appendChild(img);
                         doodleItem.appendChild(usernameLabel);
+                        doodleItem.appendChild(likeButton);
                         doodlesDiv.appendChild(doodleItem);
                     });
                 });

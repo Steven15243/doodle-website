@@ -26,3 +26,43 @@ canvas {
     margin: 10px;
 }
 
+.doodle-item {
+    margin: 20px;
+    text-align: center;
+}
+
+.doodle-item img {
+    width: 150px;
+    height: auto;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.doodle-item .username {
+    font-size: 0.9em;
+    color: #555;
+    margin-top: 5px;
+}
+
+.doodle-item button {
+    margin-top: 10px;
+    background-color: #28a745;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    font-size: 0.9em;
+    cursor: pointer;
+    border-radius: 5px;
+    transition: background-color 0.3s;
+}
+
+.doodle-item button:hover {
+    background-color: #218838;
+}
+
+footer {
+    margin-top: 50px;
+    font-size: 0.9em;
+    color: #333;
+}

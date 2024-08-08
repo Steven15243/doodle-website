@@ -85,11 +85,30 @@ async function loadDoodles() {
         usernameLabel.classList.add('username');
         usernameLabel.innerText = `Created by: ${doodle.username || 'Unknown'}`;
 
+        const likeButton = document.createElement('button');
+        likeButton.innerText = `Like (${doodle.likes || 0})`;
+        likeButton.addEventListener('click', async () => {
+            try {
+                const response = await fetch(`http://localhost:3000/doodle/${doodle._id}/like`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                const data = await response.json();
+                likeButton.innerText = `Like (${data.likes})`;
+            } catch (error) {
+                alert('Error liking doodle');
+            }
+        });
+
         doodleItem.appendChild(img);
         doodleItem.appendChild(usernameLabel);
+        doodleItem.appendChild(likeButton);
         gallery.appendChild(doodleItem);
     });
 }
+
 
 
 // Load the prompt and doodles when the page loads
