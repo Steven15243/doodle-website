@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Doodle App</title>
     <style>
+        /* Styles remain unchanged */
         body {
             font-family: 'Arial', sans-serif;
             background-color: #f0f0f0;
@@ -109,157 +110,180 @@
     <button id="save">Save Doodle</button>
     <h2>Previous Doodles</h2>
     <div id="doodles"></div>
+
     <script>
-        const canvas = document.getElementById('canvas');
-        const context = canvas.getContext('2d');
-        let drawing = false;
-    
-        let token = localStorage.getItem('token');
-        let username = localStorage.getItem('username');
-    
-        function updateCoordinates(event) {
-            const rect = canvas.getBoundingClientRect();
-            let x, y;
-    
-            if (event.touches) {  // For touch events
-                x = event.touches[0].clientX - rect.left;
-                y = event.touches[0].clientY - rect.top;
-            } else {  // For mouse events
-                x = event.clientX - rect.left;
-                y = event.clientY - rect.top;
-            }
-    
-            return { x, y };
-        }
-    
-        function startDrawing(event) {
-            drawing = true;
-            context.beginPath();
-            const { x, y } = updateCoordinates(event);
-            context.moveTo(x, y);
-            event.preventDefault();  // Prevent scrolling or other default actions
-        }
-    
-        function stopDrawing() {
-            drawing = false;
-            context.beginPath(); // Begin a new path to avoid lines connecting between touch/mouse events
-        }
-    
-        function draw(event) {
-            if (!drawing) return;
-            const { x, y } = updateCoordinates(event);
-            context.lineTo(x, y);
-            context.stroke();
-            event.preventDefault();  // Prevent scrolling or other default actions
-        }
-    
-        canvas.addEventListener('mousedown', startDrawing);
-        canvas.addEventListener('mousemove', draw);
-        canvas.addEventListener('mouseup', stopDrawing);
-        canvas.addEventListener('mouseout', stopDrawing);
-    
-        // Adding touch events
-        canvas.addEventListener('touchstart', startDrawing);
-        canvas.addEventListener('touchmove', draw);
-        canvas.addEventListener('touchend', stopDrawing);
-    
-        document.getElementById('save').addEventListener('click', () => {
-            const doodleUrl = canvas.toDataURL('image/png');
-            fetch('/doodle', {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({ doodleUrl })
-            }).then(response => response.json()).then(data => {
-                console.log('Doodle saved:', data);
-                loadDoodles();
-            });
-        });
-    
-        document.getElementById('show-register').addEventListener('click', () => {
-            document.getElementById('register-form').style.display = 'block';
-            document.getElementById('login-form').style.display = 'none';
-        });
-    
-        document.getElementById('show-login').addEventListener('click', () => {
-            document.getElementById('register-form').style.display = 'none';
-            document.getElementById('login-form').style.display = 'block';
-        });
-    
-        document.getElementById('register').addEventListener('click', () => {
-            const username = document.getElementById('register-username').value;
-            const password = document.getElementById('register-password').value;
-            fetch('/register', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, password })
-            }).then(response => response.text()).then(data => {
-                console.log(data);
-                alert('Registration successful, please login');
-                document.getElementById('register-form').style.display = 'none';
-            });
-        });
-    
-        document.getElementById('login').addEventListener('click', () => {
-            const username = document.getElementById('login-username').value;
-            const password = document.getElementById('login-password').value;
-            fetch('/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, password })
-            }).then(response => response.json()).then(data => {
-                console.log(data);
-                if (data.message === 'Login successful') {
-                    alert('Login successful');
-                    localStorage.setItem('token', data.token);
-                    localStorage.setItem('username', username);
-                    token = data.token;
-                    document.getElementById('login-form').style.display = 'none';
-                    document.getElementById('auth-buttons').style.display = 'none';
-                    document.getElementById('username-display').innerText = `Logged in as: ${username}`;
-                    loadPrompt();
-                    loadDoodles();
-                } else {
-                    alert('Login failed');
+        document.addEventListener('DOMContentLoaded', () => {
+            const canvas = document.getElementById('canvas');
+            const context = canvas.getContext('2d');
+            let drawing = false;
+
+            const token = localStorage.getItem('token');
+            const username = localStorage.getItem('username');
+
+            function updateCoordinates(event) {
+                const rect = canvas.getBoundingClientRect();
+                let x, y;
+
+                if (event.touches) {  // For touch events
+                    x = event.touches[0].clientX - rect.left;
+                    y = event.touches[0].clientY - rect.top;
+                } else {  // For mouse events
+                    x = event.clientX - rect.left;
+                    y = event.clientY - rect.top;
                 }
-            });
-        });
-    
-        function loadDoodles() {
-            fetch('/doodles', {
-                headers: { 'Authorization': `Bearer ${token}` }
-            }).then(response => response.json()).then(doodles => {
-                const doodlesDiv = document.getElementById('doodles');
-                doodlesDiv.innerHTML = '';
-                doodles.forEach(doodle => {
-                    const img = document.createElement('img');
-                    img.src = doodle.doodleUrl;
-                    doodlesDiv.appendChild(img);
+
+                return { x, y };
+            }
+
+            function startDrawing(event) {
+                drawing = true;
+                context.beginPath();
+                const { x, y } = updateCoordinates(event);
+                context.moveTo(x, y);
+                event.preventDefault();  // Prevent scrolling or other default actions
+            }
+
+            function stopDrawing() {
+                drawing = false;
+                context.beginPath(); // Begin a new path to avoid lines connecting between touch/mouse events
+            }
+
+            function draw(event) {
+                if (!drawing) return;
+                const { x, y } = updateCoordinates(event);
+                context.lineTo(x, y);
+                context.stroke();
+                event.preventDefault();  // Prevent scrolling or other default actions
+            }
+
+            canvas.addEventListener('mousedown', startDrawing);
+            canvas.addEventListener('mousemove', draw);
+            canvas.addEventListener('mouseup', stopDrawing);
+            canvas.addEventListener('mouseout', stopDrawing);
+
+            // Adding touch events
+            canvas.addEventListener('touchstart', startDrawing);
+            canvas.addEventListener('touchmove', draw);
+            canvas.addEventListener('touchend', stopDrawing);
+
+            document.getElementById('save').addEventListener('click', () => {
+                const doodleUrl = canvas.toDataURL('image/png');
+                fetch('/doodle', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ doodleUrl })
+                }).then(response => response.json()).then(data => {
+                    console.log('Doodle saved:', data);
+                    loadDoodles();
                 });
             });
-        }
-    
-        function loadPrompt() {
-            fetch('/prompt', {
-                headers: { 'Authorization': `Bearer ${token}` }
-            }).then(response => response.json()).then(data => {
-                document.getElementById('prompt').innerText = data.prompt;
+
+            document.getElementById('show-register').addEventListener('click', () => {
+                document.getElementById('register-form').style.display = 'block';
+                document.getElementById('login-form').style.display = 'none';
             });
-        }
-    
-        // Check if the user is logged in on page load
-        if (token && username) {
-            document.getElementById('auth-buttons').style.display = 'none';
-            document.getElementById('username-display').innerText = `Logged in as: ${username}`;
-            loadPrompt();
-            loadDoodles();
-        } else {
-            document.getElementById('auth-buttons').style.display = 'flex';
-            document.getElementById('username-display').innerText = '';
-        }
+
+            document.getElementById('show-login').addEventListener('click', () => {
+                document.getElementById('register-form').style.display = 'none';
+                document.getElementById('login-form').style.display = 'block';
+            });
+
+            document.getElementById('register').addEventListener('click', () => {
+                const username = document.getElementById('register-username').value;
+                const password = document.getElementById('register-password').value;
+                fetch('/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                }).then(response => response.text()).then(data => {
+                    console.log(data);
+                    alert('Registration successful, please login');
+                    document.getElementById('register-form').style.display = 'none';
+                });
+            });
+
+            document.getElementById('login').addEventListener('click', () => {
+                const username = document.getElementById('login-username').value;
+                const password = document.getElementById('login-password').value;
+                fetch('/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                }).then(response => response.json()).then(data => {
+                    console.log(data);
+                    if (data.message === 'Login successful') {
+                        alert('Login successful');
+                        localStorage.setItem('token', data.token);
+                        localStorage.setItem('username', username);
+                        document.getElementById('login-form').style.display = 'none';
+                        document.getElementById('auth-buttons').style.display = 'none';
+                        document.getElementById('username-display').innerText = `Logged in as: ${username}`;
+                        loadPrompt();
+                        loadDoodles();
+                    } else {
+                        alert('Login failed');
+                    }
+                });
+            });
+
+            function loadDoodles() {
+                fetch('/doodles', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                }).then(response => response.json()).then(doodles => {
+                    const doodlesDiv = document.getElementById('doodles');
+                    doodlesDiv.innerHTML = '';
+                    doodles.forEach(doodle => {
+                        const img = document.createElement('img');
+                        img.src = doodle.doodleUrl;
+                        doodlesDiv.appendChild(img);
+                    });
+                });
+            }
+
+            function loadPrompt() {
+                fetch('/prompt', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                }).then(response => response.json()).then(data => {
+                    document.getElementById('prompt').innerText = data.prompt;
+                });
+            }
+
+            // Check if the user is logged in on page load
+            if (token && username) {
+                // Verify token with the server
+                fetch('/verify-token', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                })
+                .then(response => {
+                    if (response.ok) {
+                        // Token is valid
+                        document.getElementById('auth-buttons').style.display = 'none';
+                        document.getElementById('username-display').innerText = `Logged in as: ${username}`;
+                        loadPrompt();
+                        loadDoodles();
+                    } else {
+                        // Token is invalid
+                        throw new Error('Invalid token');
+                    }
+                })
+                .catch(() => {
+                    // Token is invalid or an error occurred, clear storage and redirect to login
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('username');
+                    document.getElementById('auth-buttons').style.display = 'flex';
+                    document.getElementById('username-display').innerText = '';
+                    alert('Session expired. Please log in again.');
+                });
+            } else {
+                document.getElementById('auth-buttons').style.display = 'flex';
+                document.getElementById('username-display').innerText = '';
+            }
+        });
     </script>
-    
 </body>
 </html>
