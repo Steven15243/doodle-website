@@ -75,11 +75,22 @@ async function loadDoodles() {
     gallery.innerHTML = '';
 
     doodles.forEach(doodle => {
+        const doodleItem = document.createElement('div');
+        doodleItem.classList.add('doodle-item');
+
         const img = document.createElement('img');
-        img.src = `http://localhost:3000/${doodle.doodleUrl}`; // Adjust the image source path
-        gallery.appendChild(img);
+        img.src = `http://localhost:3000/${doodle.doodleUrl}`;
+
+        const usernameLabel = document.createElement('div');
+        usernameLabel.classList.add('username');
+        usernameLabel.innerText = `Created by: ${doodle.username || 'Unknown'}`;
+
+        doodleItem.appendChild(img);
+        doodleItem.appendChild(usernameLabel);
+        gallery.appendChild(doodleItem);
     });
 }
+
 
 // Load the prompt and doodles when the page loads
 window.onload = () => {

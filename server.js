@@ -40,10 +40,12 @@ const User = mongoose.model('User', userSchema);
 // Doodle schema and model
 const doodleSchema = new mongoose.Schema({
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    username: { type: String, required: true },  // Add this line
     prompt: String,
     doodleUrl: String,
     date: { type: Date, default: Date.now }
 });
+
 
 const Doodle = mongoose.model('Doodle', doodleSchema);
 
@@ -100,21 +102,29 @@ app.post('/doodle', authenticate, async (req, res) => {
     const imgData = req.body.doodleUrl;
     const base64Data = imgData.replace(/^data:image\/png;base64,/, "");
     const fileName = `uploads/doodle-${Date.now()}.png`;
+    const user = await User.findById(req.userId);  // Fetch the user information
+
     fs.writeFile(path.join(__dirname, 'public', fileName), base64Data, 'base64', async (err) => {
         if (err) {
             res.status(500).send(err);
         } else {
-            const doodle = new Doodle({ userId: req.userId, doodleUrl: fileName });
+            const doodle = new Doodle({
+                userId: req.userId,
+                username: user.username,  // Save the username with the doodle
+                doodleUrl: fileName
+            });
             await doodle.save();
             res.status(201).send(doodle);
         }
     });
 });
 
+
 app.get('/doodles', authenticate, async (req, res) => {
-    const doodles = await Doodle.find();  // Fetch all doodles, regardless of userId
+    const doodles = await Doodle.find().populate('userId', 'username');  // Populate username
     res.json(doodles);
 });
+
 
 
 app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads')));
