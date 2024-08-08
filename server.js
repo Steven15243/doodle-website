@@ -112,9 +112,10 @@ app.post('/doodle', authenticate, async (req, res) => {
 });
 
 app.get('/doodles', authenticate, async (req, res) => {
-    const doodles = await Doodle.find({ userId: req.userId });
+    const doodles = await Doodle.find();  // Fetch all doodles, regardless of userId
     res.json(doodles);
 });
+
 
 app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads')));
 

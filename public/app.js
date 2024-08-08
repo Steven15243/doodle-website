@@ -59,13 +59,14 @@ async function submitDoodle() {
 
     if (response.ok) {
         alert('Doodle submitted successfully!');
-        loadDoodles();
+        loadDoodles(); // Refresh the doodles gallery after submitting a new doodle
         clearCanvas();
     } else {
         alert('Failed to submit doodle.');
     }
 }
 
+// Updated loadDoodles function
 async function loadDoodles() {
     const response = await fetch('http://localhost:3000/doodles');
     const doodles = await response.json();
@@ -75,11 +76,12 @@ async function loadDoodles() {
 
     doodles.forEach(doodle => {
         const img = document.createElement('img');
-        img.src = `http://localhost:3000/${doodle.doodleUrl}`;
+        img.src = `http://localhost:3000/${doodle.doodleUrl}`; // Adjust the image source path
         gallery.appendChild(img);
     });
 }
 
+// Load the prompt and doodles when the page loads
 window.onload = () => {
     getPrompt();
     loadDoodles();
