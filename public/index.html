@@ -74,25 +74,6 @@
             color: #555;
             margin-top: 5px;
         }
-        #doodles .doodle-item .comment-section {
-            margin-top: 10px;
-            text-align: left;
-        }
-        #doodles .doodle-item .comment-section ul {
-            list-style-type: none;
-            padding: 0;
-            font-size: 0.9em;
-            color: #555;
-        }
-        #doodles .doodle-item .comment-section ul li {
-            margin-bottom: 5px;
-        }
-        #doodles .doodle-item .comment-section input {
-            width: 100%;
-            padding: 5px;
-            font-size: 0.9em;
-            margin-top: 5px;
-        }
         .auth-form {
             display: none;
             margin-bottom: 20px;
@@ -122,6 +103,14 @@
             color: #333;
         }
     </style>
+</head>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Doodle App</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <h1>Doodle App</h1>
@@ -167,10 +156,10 @@
                 const rect = canvas.getBoundingClientRect();
                 let x, y;
 
-                if (event.touches) {
+                if (event.touches) {  // For touch events
                     x = event.touches[0].clientX - rect.left;
                     y = event.touches[0].clientY - rect.top;
-                } else {
+                } else {  // For mouse events
                     x = event.clientX - rect.left;
                     y = event.clientY - rect.top;
                 }
@@ -183,12 +172,12 @@
                 context.beginPath();
                 const { x, y } = updateCoordinates(event);
                 context.moveTo(x, y);
-                event.preventDefault();
+                event.preventDefault();  // Prevent scrolling or other default actions
             }
 
             function stopDrawing() {
                 drawing = false;
-                context.beginPath();
+                context.beginPath(); // Begin a new path to avoid lines connecting between touch/mouse events
             }
 
             function draw(event) {
@@ -196,7 +185,7 @@
                 const { x, y } = updateCoordinates(event);
                 context.lineTo(x, y);
                 context.stroke();
-                event.preventDefault();
+                event.preventDefault();  // Prevent scrolling or other default actions
             }
 
             canvas.addEventListener('mousedown', startDrawing);
@@ -204,6 +193,7 @@
             canvas.addEventListener('mouseup', stopDrawing);
             canvas.addEventListener('mouseout', stopDrawing);
 
+            // Adding touch events
             canvas.addEventListener('touchstart', startDrawing);
             canvas.addEventListener('touchmove', draw);
             canvas.addEventListener('touchend', stopDrawing);
@@ -268,95 +258,104 @@
                         localStorage.setItem('token', data.token);
                         localStorage.setItem('username', username);
                         document.getElementById('login-form').style.display = 'none';
-                        document.getElementById('username-display').innerText = `Welcome, ${username}`;
+                        document.getElementById('auth-buttons').style.display = 'none';
+                        document.getElementById('username-display').innerText = `Logged in as: ${username}`;
                         document.getElementById('login-message').style.display = 'none';
+                        loadPrompt();
                         loadDoodles();
                     } else {
                         alert('Login failed');
                     }
-                }).catch(error => {
-                    console.error('Error:', error);
-                    alert('An error occurred during login.');
                 });
             });
 
             function loadDoodles() {
                 fetch('/doodles', {
                     headers: { 'Authorization': `Bearer ${token}` }
-                })
-                .then(response => response.json())
-                .then(data => {
-                    const doodlesContainer = document.getElementById('doodles');
-                    doodlesContainer.innerHTML = '';
-
-                    data.doodles.forEach(doodle => {
+                }).then(response => response.json()).then(doodles => {
+                    const doodlesDiv = document.getElementById('doodles');
+                    doodlesDiv.innerHTML = '';
+                    doodles.forEach(doodle => {
                         const doodleItem = document.createElement('div');
                         doodleItem.classList.add('doodle-item');
 
                         const img = document.createElement('img');
                         img.src = doodle.doodleUrl;
-                        doodleItem.appendChild(img);
 
                         const usernameLabel = document.createElement('div');
                         usernameLabel.classList.add('username');
                         usernameLabel.innerText = `Created by: ${doodle.username}`;
-                        doodleItem.appendChild(usernameLabel);
 
-                        const commentSection = document.createElement('div');
-                        commentSection.classList.add('comment-section');
-
-                        const commentsList = document.createElement('ul');
-                        doodle.comments.forEach(comment => {
-                            const commentItem = document.createElement('li');
-                            commentItem.innerText = `${comment.username}: ${comment.text}`;
-                            commentsList.appendChild(commentItem);
-                        });
-                        commentSection.appendChild(commentsList);
-
-                        const commentInput = document.createElement('input');
-                        commentInput.type = 'text';
-                        commentInput.placeholder = 'Add a comment...';
-                        commentSection.appendChild(commentInput);
-
-                        commentInput.addEventListener('keypress', (event) => {
-                            if (event.key === 'Enter') {
-                                const commentText = commentInput.value;
-                                if (commentText.trim() !== '') {
-                                    fetch('/comment', {
-                                        method: 'POST',
-                                        headers: {
-                                            'Content-Type': 'application/json',
-                                            'Authorization': `Bearer ${token}`
-                                        },
-                                        body: JSON.stringify({
-                                            doodleId: doodle.id,
-                                            text: commentText,
-                                            username: username
-                                        })
-                                    })
-                                    .then(response => response.json())
-                                    .then(data => {
-                                        console.log('Comment added:', data);
-                                        loadDoodles();
-                                    })
-                                    .catch(error => {
-                                        console.error('Error:', error);
-                                        alert('Failed to add comment');
-                                    });
+                        const likeButton = document.createElement('button');
+                        likeButton.innerText = `Like (${doodle.likes || 0})`;
+                        likeButton.addEventListener('click', async () => {
+                            try {
+                                const response = await fetch(`/doodle/${doodle._id}/like`, {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'Authorization': `Bearer ${token}`
+                                    }
+                                });
+                                if (response.ok) {
+                                    const data = await response.json();
+                                    likeButton.innerText = `Like (${data.likes})`;
+                                } else {
+                                    alert('Error liking doodle');
                                 }
+                            } catch (error) {
+                                alert('Error liking doodle');
                             }
                         });
 
-                        doodleItem.appendChild(commentSection);
-                        doodlesContainer.appendChild(doodleItem);
+                        doodleItem.appendChild(img);
+                        doodleItem.appendChild(usernameLabel);
+                        doodleItem.appendChild(likeButton);
+                        doodlesDiv.appendChild(doodleItem);
                     });
                 });
             }
 
-            if (token) {
-                document.getElementById('username-display').innerText = `Welcome, ${username}`;
-                document.getElementById('login-message').style.display = 'none';
-                loadDoodles();
+            function loadPrompt() {
+                fetch('/prompt', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                }).then(response => response.json()).then(data => {
+                    document.getElementById('prompt').innerText = data.prompt;
+                });
+            }
+
+            // Verify token on page load
+            if (token && username) {
+                // Verify token with the server
+                fetch('/verify-token', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                })
+                .then(response => {
+                    if (response.ok) {
+                        // Token is valid
+                        document.getElementById('auth-buttons').style.display = 'none';
+                        document.getElementById('username-display').innerText = `Logged in as: ${username}`;
+                        document.getElementById('login-message').style.display = 'none';
+                        loadPrompt();
+                        loadDoodles();
+                    } else {
+                        // Token is invalid
+                        throw new Error('Invalid token');
+                    }
+                })
+                .catch(() => {
+                    // Token is invalid or an error occurred, clear storage and redirect to login
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('username');
+                    document.getElementById('auth-buttons').style.display = 'flex';
+                    document.getElementById('username-display').innerText = '';
+                    alert('Session expired. Please log in again.');
+                });
+            } else {
+                document.getElementById('auth-buttons').style.display = 'flex';
+                document.getElementById('username-display').innerText = '';
             }
         });
     </script>
