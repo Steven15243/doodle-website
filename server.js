@@ -65,19 +65,21 @@ app.post('/register', async (req, res) => {
 
     // Validate password
     if (!passwordRegex.test(password)) {
+        // If the password does not meet the criteria, return an error response
         return res.status(400).send('Password must be at least 6 characters long, with at least one number, one uppercase letter, and one lowercase letter.');
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const user = new User({ username, password: hashedPassword });
-
     try {
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const user = new User({ username, password: hashedPassword });
+
         await user.save();
         res.status(201).send('User registered');
     } catch (err) {
         res.status(400).send('Error registering user');
     }
 });
+
 
 
 
