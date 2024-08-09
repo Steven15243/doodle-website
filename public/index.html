@@ -97,20 +97,28 @@
             font-size: 1.2em;
             color: #333;
         }
+        #profile-section {
+            margin-top: 20px;
+            text-align: center;
+        }
+        #profile-pic {
+            border-radius: 50%;
+            width: 100px;
+            height: 100px;
+            object-fit: cover;
+            margin-bottom: 10px;
+        }
+        #bio {
+            margin-top: 10px;
+            font-size: 1em;
+            color: #555;
+        }
         footer {
             margin-top: 50px;
             font-size: 0.9em;
             color: #333;
         }
     </style>
-</head>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Doodle App</title>
-    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <h1>Doodle App</h1>
@@ -132,6 +140,20 @@
         <input type="password" id="login-password" placeholder="Password">
         <button type="button" id="login">Login</button>
     </form>
+    
+    <div id="profile-section" style="display: none;">
+        <img id="profile-pic" src="" alt="Profile Picture">
+        <div id="bio"></div>
+        <button id="edit-profile">Edit Profile</button>
+    </div>
+    
+    <form id="profile-form" class="auth-form" style="display: none;">
+        <h2>Edit Profile</h2>
+        <input type="file" id="profile-pic-input" accept="image/*">
+        <textarea id="bio-input" placeholder="Enter your bio..."></textarea>
+        <button type="button" id="save-profile">Save Profile</button>
+    </form>
+    
     <p id="prompt"></p>
     <canvas id="canvas" width="500" height="500"></canvas>
     <br>
@@ -239,29 +261,29 @@
                         return response.text().then(text => { throw new Error(text) });
                     }
                 }).catch(error => {
-                    alert(`Registration failed: ${error.message}`);
+                    alert('Error: ' + error.message);
                 });
             });
-
 
             document.getElementById('login').addEventListener('click', () => {
                 const username = document.getElementById('login-username').value;
                 const password = document.getElementById('login-password').value;
+
                 fetch('/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ username, password })
                 }).then(response => response.json()).then(data => {
-                    console.log(data);
-                    if (data.message === 'Login successful') {
-                        alert('Login successful');
+                    if (data.token) {
                         localStorage.setItem('token', data.token);
-                        localStorage.setItem('username', username);
+                        localStorage.setItem('username', data.username);
                         document.getElementById('login-form').style.display = 'none';
                         document.getElementById('auth-buttons').style.display = 'none';
-                        document.getElementById('username-display').innerText = `Logged in as: ${username}`;
                         document.getElementById('login-message').style.display = 'none';
-                        loadPrompt();
+                        document.getElementById('username-display').innerText = `Logged in as: ${data.username}`;
+                        document.getElementById('profile-section').style.display = 'block';
+                        document.getElementById('profile-pic').src = data.profilePicture || 'default-profile.png';
+                        document.getElementById('bio').innerText = data.bio || 'No bio yet.';
                         loadDoodles();
                     } else {
                         alert('Login failed');
@@ -269,12 +291,60 @@
                 });
             });
 
+            document.getElementById('edit-profile').addEventListener('click', () => {
+                document.getElementById('profile-section').style.display = 'none';
+                document.getElementById('profile-form').style.display = 'block';
+
+                fetch('/profile', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                }).then(response => response.json()).then(data => {
+                    document.getElementById('bio-input').value = data.bio || '';
+                });
+            });
+
+            document.getElementById('save-profile').addEventListener('click', () => {
+                const bio = document.getElementById('bio-input').value;
+                const profilePicInput = document.getElementById('profile-pic-input');
+                let profilePicture = '';
+
+                if (profilePicInput.files && profilePicInput.files[0]) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        profilePicture = e.target.result;
+                        saveProfile(profilePicture, bio);
+                    };
+                    reader.readAsDataURL(profilePicInput.files[0]);
+                } else {
+                    saveProfile(profilePicture, bio);
+                }
+            });
+
+            function saveProfile(profilePicture, bio) {
+                fetch('/profile', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ profilePicture, bio })
+                }).then(response => response.json()).then(data => {
+                    alert('Profile updated successfully');
+                    document.getElementById('profile-form').style.display = 'none';
+                    document.getElementById('profile-section').style.display = 'block';
+                    document.getElementById('profile-pic').src = data.user.profilePicture || 'default-profile.png';
+                    document.getElementById('bio').innerText = data.user.bio || 'No bio yet.';
+                }).catch(error => {
+                    alert('Error updating profile');
+                });
+            }
+
             function loadDoodles() {
                 fetch('/doodles', {
                     headers: { 'Authorization': `Bearer ${token}` }
                 }).then(response => response.json()).then(doodles => {
                     const doodlesDiv = document.getElementById('doodles');
                     doodlesDiv.innerHTML = '';
+
                     doodles.forEach(doodle => {
                         const doodleItem = document.createElement('div');
                         doodleItem.classList.add('doodle-item');
@@ -284,78 +354,31 @@
 
                         const usernameLabel = document.createElement('div');
                         usernameLabel.classList.add('username');
-                        usernameLabel.innerText = `Created by: ${doodle.username}`;
-
-                        const likeButton = document.createElement('button');
-                        likeButton.innerText = `Like (${doodle.likes || 0})`;
-                        likeButton.addEventListener('click', async () => {
-                            try {
-                                const response = await fetch(`/doodle/${doodle._id}/like`, {
-                                    method: 'POST',
-                                    headers: {
-                                        'Content-Type': 'application/json',
-                                        'Authorization': `Bearer ${token}`
-                                    }
-                                });
-                                if (response.ok) {
-                                    const data = await response.json();
-                                    likeButton.innerText = `Like (${data.likes})`;
-                                } else {
-                                    alert('Error liking doodle');
-                                }
-                            } catch (error) {
-                                alert('Error liking doodle');
-                            }
-                        });
+                        usernameLabel.innerHTML = `
+                            <img src="${doodle.profilePicture || 'default-profile.png'}" style="width: 30px; height: 30px; border-radius: 50%;">
+                            <span>${doodle.username}</span>
+                            <p>${doodle.bio || ''}</p>
+                        `;
 
                         doodleItem.appendChild(img);
                         doodleItem.appendChild(usernameLabel);
-                        doodleItem.appendChild(likeButton);
                         doodlesDiv.appendChild(doodleItem);
                     });
                 });
             }
 
-            function loadPrompt() {
-                fetch('/prompt', {
+            if (token) {
+                document.getElementById('auth-buttons').style.display = 'none';
+                document.getElementById('login-message').style.display = 'none';
+                document.getElementById('username-display').innerText = `Logged in as: ${username}`;
+                document.getElementById('profile-section').style.display = 'block';
+                fetch('/profile', {
                     headers: { 'Authorization': `Bearer ${token}` }
                 }).then(response => response.json()).then(data => {
-                    document.getElementById('prompt').innerText = data.prompt;
+                    document.getElementById('profile-pic').src = data.profilePicture || 'default-profile.png';
+                    document.getElementById('bio').innerText = data.bio || 'No bio yet.';
                 });
-            }
-
-            // Verify token on page load
-            if (token && username) {
-                // Verify token with the server
-                fetch('/verify-token', {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                })
-                .then(response => {
-                    if (response.ok) {
-                        // Token is valid
-                        document.getElementById('auth-buttons').style.display = 'none';
-                        document.getElementById('username-display').innerText = `Logged in as: ${username}`;
-                        document.getElementById('login-message').style.display = 'none';
-                        loadPrompt();
-                        loadDoodles();
-                    } else {
-                        // Token is invalid
-                        throw new Error('Invalid token');
-                    }
-                })
-                .catch(() => {
-                    // Token is invalid or an error occurred, clear storage and redirect to login
-                    localStorage.removeItem('token');
-                    localStorage.removeItem('username');
-                    document.getElementById('auth-buttons').style.display = 'flex';
-                    document.getElementById('username-display').innerText = '';
-                    alert('Session expired. Please log in again.');
-                });
-            } else {
-                document.getElementById('auth-buttons').style.display = 'flex';
-                document.getElementById('username-display').innerText = '';
+                loadDoodles();
             }
         });
     </script>

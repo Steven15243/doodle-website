@@ -32,8 +32,11 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/doodleApp
 // User schema and model
 const userSchema = new mongoose.Schema({
     username: { type: String, unique: true, required: true },
-    password: { type: String, required: true }
+    password: { type: String, required: true },
+    profilePicture: { type: String, default: '' },  // URL to the profile picture
+    bio: { type: String, default: '' }               // User's bio
 });
+
 
 const User = mongoose.model('User', userSchema);
 
@@ -537,6 +540,41 @@ app.post('/doodle/:id/like', authenticate, async (req, res) => {
 });
 
 
+// Route to update profile
+app.post('/profile', authenticate, async (req, res) => {
+    try {
+        const { bio } = req.body;
+        let profilePictureUrl = '';
+
+        if (req.body.profilePicture) {
+            const imgData = req.body.profilePicture;
+            const base64Data = imgData.replace(/^data:image\/png;base64,/, "");
+            const fileName = `uploads/profile-${req.userId}-${Date.now()}.png`;
+
+            fs.writeFileSync(path.join(__dirname, 'public', fileName), base64Data, 'base64');
+            profilePictureUrl = fileName;
+        }
+
+        const user = await User.findByIdAndUpdate(req.userId, {
+            bio,
+            profilePicture: profilePictureUrl || user.profilePicture  // Keep existing profile picture if not updated
+        }, { new: true });
+
+        res.status(200).json({ message: 'Profile updated successfully', user });
+    } catch (error) {
+        res.status(500).send('Error updating profile');
+    }
+});
+
+// Route to get user profile
+app.get('/profile', authenticate, async (req, res) => {
+    try {
+        const user = await User.findById(req.userId);
+        res.status(200).json({ username: user.username, bio: user.bio, profilePicture: user.profilePicture });
+    } catch (error) {
+        res.status(500).send('Error fetching profile');
+    }
+});
 
 
 app.get('/doodles', authenticate, async (req, res) => {
