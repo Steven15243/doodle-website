@@ -45,8 +45,15 @@ const doodleSchema = new mongoose.Schema({
     doodleUrl: String,
     date: { type: Date, default: Date.now },
     likes: { type: Number, default: 0 },
-    likedBy: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }]
+    likedBy: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+    comments: [{
+        userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+        username: String,
+        comment: String,
+        date: { type: Date, default: Date.now }
+    }]
 });
+
 
 
 
@@ -534,6 +541,55 @@ app.post('/doodle/:id/like', authenticate, async (req, res) => {
     await doodle.save();
 
     res.json({ likes: doodle.likes });
+});
+
+// Add a comment to a doodle
+app.post('/doodle/:id/comment', authenticate, async (req, res) => {
+    try {
+        const doodleId = req.params.id;
+        const { comment } = req.body;
+
+        if (!comment || comment.trim() === '') {
+            return res.status(400).send('Comment cannot be empty');
+        }
+
+        const doodle = await Doodle.findById(doodleId);
+        if (!doodle) {
+            return res.status(404).send('Doodle not found');
+        }
+
+        const user = await User.findById(req.userId);
+
+        const newComment = {
+            userId: req.userId,
+            username: user.username,
+            comment: comment,
+            date: new Date()
+        };
+
+        doodle.comments.push(newComment);
+        await doodle.save();
+
+        res.status(201).send(doodle);
+    } catch (error) {
+        res.status(500).send('Internal server error');
+    }
+});
+
+// Get comments for a doodle
+app.get('/doodle/:id/comments', authenticate, async (req, res) => {
+    try {
+        const doodleId = req.params.id;
+        const doodle = await Doodle.findById(doodleId).select('comments');
+
+        if (!doodle) {
+            return res.status(404).send('Doodle not found');
+        }
+
+        res.status(200).json(doodle.comments);
+    } catch (error) {
+        res.status(500).send('Internal server error');
+    }
 });
 
 
