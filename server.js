@@ -55,8 +55,18 @@ const Doodle = mongoose.model('Doodle', doodleSchema);
 // Authentication routes
 app.post('/register', async (req, res) => {
     const { username, password } = req.body;
+
+    // Regular expression to validate password
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{6,}$/;
+
+    // Validate password
+    if (!passwordRegex.test(password)) {
+        return res.status(400).send('Password must be at least 6 characters long, with at least one number, one uppercase letter, and one lowercase letter.');
+    }
+
     const hashedPassword = await bcrypt.hash(password, 10);
     const user = new User({ username, password: hashedPassword });
+
     try {
         await user.save();
         res.status(201).send('User registered');
@@ -64,6 +74,7 @@ app.post('/register', async (req, res) => {
         res.status(400).send('Error registering user');
     }
 });
+
 
 app.post('/login', async (req, res) => {
     const { username, password } = req.body;
