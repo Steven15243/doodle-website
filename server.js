@@ -59,6 +59,10 @@ app.post('/register', async (req, res) => {
     // Regular expression to validate password
     const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{6,}$/;
 
+    console.log(`Username: ${username}`);
+    console.log(`Password: ${password}`);
+    console.log(`Password meets criteria: ${passwordRegex.test(password)}`);
+
     // Validate password
     if (!passwordRegex.test(password)) {
         return res.status(400).send('Password must be at least 6 characters long, with at least one number, one uppercase letter, and one lowercase letter.');
@@ -74,6 +78,7 @@ app.post('/register', async (req, res) => {
         res.status(400).send('Error registering user');
     }
 });
+
 
 
 app.post('/login', async (req, res) => {
